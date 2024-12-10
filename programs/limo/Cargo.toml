@@ -1,0 +1,51 @@
+[package]
+name = "limo"
+version = "0.1.0"
+description = "Kamino limo Solana program"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "limo"
+
+[features]
+program-test = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+localnet = []
+edition2021 = []
+integration_tests = []
+default = []
+mainnet = []
+staging = []
+
+[profile.release]
+overflow-checks = true
+
+[dependencies]
+anchor-lang.workspace = true
+anchor-spl.workspace = true
+solana-program.workspace = true
+anyhow = "1.0.71"
+thiserror = "1.0.40"
+borsh.workspace = true
+bytemuck.workspace = true
+derivative = "2.2.0"
+num_enum = "0.7.1"
+num-derive = "0.4.1"
+strum = { git = "https://github.com/Kamino-Finance/strum", features = [
+    "derive",
+], branch = "checked_arithmetics" }
+solana-security-txt = "1.1.1"
+
+bincode = "1.3.3"
+fixed = { version = "=1.23.1" }
+fixed-macro = "=1.1"
+uint = "0.9.5"
+express-relay = { version = "0.3.0", features = [
+    "no-entrypoint",
+] }
+
