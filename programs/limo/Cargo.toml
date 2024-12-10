@@ -10,20 +10,15 @@ crate-type = ["cdylib", "lib"]
 name = "limo"
 
 [features]
-program-test = []
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
 localnet = []
 edition2021 = []
-integration_tests = []
 default = []
 mainnet = []
 staging = []
-
-[profile.release]
-overflow-checks = true
 
 [dependencies]
 anchor-lang.workspace = true
