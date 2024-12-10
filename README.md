@@ -1,1 +1,1 @@
-# Kamino Liquidity Integration & Matching Orders (LIMO)
+# Kamino Limit Orders (LIMO)
