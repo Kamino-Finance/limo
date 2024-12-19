@@ -2,32 +2,30 @@ name: Publish Limo to crates.io
 
 env:
   rustc_version: "1.73.0"
+  version: 0.0.1
 
 # Workflow test purpose only
-# on:
-#   pull_request:
-#     branches:
-#       - master
-#       - "release/**"
-
 on:
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to publish, by semver keyword.'
-        required: true
-        default: patch
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
+  pull_request:
+    branches:
+      - master
+      - "release/**"
+
+# on:
+#   # Allows you to run this workflow manually from the Actions tab
+#   workflow_dispatch:
+#     inputs:
+#       version:
+#         description: 'Version to publish, by semver keyword.'
+#         required: true
+#         default: patch
+#         type: choice
+#         options:
+#           - patch
+#           - minor
+#           - major
 
 jobs:
-  trigger:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.label.name == 'publish' }}
   publish-limo-crate:
     name: Publish LIMO
     runs-on: ubuntu-latest
@@ -62,7 +60,7 @@ jobs:
         id: bump_version
         working-directory: "programs/limo"
         run: |
-          VERSION=${{ github.event.inputs.version }}
+          VERSION=${{ env.version }}
           cargo set-version $VERSION
       
       # Step 5: Publish crate to crates.io
@@ -84,5 +82,5 @@ jobs:
         working-directory: "programs/limo"
         run: |
           git add Cargo.toml Cargo.lock
-          git commit -m "Bump version and publish crate - ${{ steps.semver.outputs.new_version }}"
+          git commit -m "Bump version and publish crate - ${{ env.version }}"
           git push --force origin "HEAD:${{ github.event.pull_request.head.ref }}"
