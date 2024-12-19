@@ -1,9 +1,11 @@
 [package]
 name = "limo"
 version = "0.1.0"
-description = "Kamino limo Solana program"
+description = "LIMO - Kamino Limit Orders"
+license-file="LICENSE"
 edition = "2021"
-publish = false
+repository="https://github.com/Kamino-Finance/limo"
+keywords = ["limo", "kamino", "limit orders", "kamino swap"]
 
 [lib]
 crate-type = ["cdylib", "lib"]
@@ -43,4 +45,3 @@ uint = "0.9.5"
 express-relay = { version = "0.3.0", features = [
     "no-entrypoint",
 ] }
-
