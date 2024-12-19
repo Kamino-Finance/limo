@@ -2,7 +2,7 @@ name: Publish Limo to crates.io
 
 env:
   rustc_version: "1.73.0"
-  version: 0.0.1
+  version: 0.1.1
 
 # Workflow test purpose only
 on:
