@@ -7,31 +7,41 @@ use anchor_lang::{
     },
     AnchorDeserialize, Discriminator,
 };
-use anchor_spl::{associated_token, token::spl_token, token_2022};
+use anchor_spl::{
+    associated_token,
+    token::spl_token,
+    token_2022::{self, spl_token_2022::instruction::TokenInstruction},
+};
 use solana_program::pubkey;
 
 use crate::LimoError;
 
 const COMPUTE_BUDGET_PUBKEY: Pubkey = pubkey!("ComputeBudget111111111111111111111111111111");
 
-pub fn ensure_second_ix_match<T>(instruction_sysvar_account_info: &AccountInfo) -> Result<T>
+pub fn ensure_second_ix_match<T>(
+    instruction_sysvar_account_info: &AccountInfo,
+    input_mint: &Pubkey,
+    output_mint: &Pubkey,
+) -> Result<T>
 where
     T: Discriminator + AnchorDeserialize,
 {
     let instruction_loader = ix_utils::BpfInstructionLoader {
         instruction_sysvar_account_info,
     };
-    ensure_second_ix_match_internal(&instruction_loader)
+    ensure_second_ix_match_internal(&instruction_loader, input_mint, output_mint)
 }
 
 fn ensure_second_ix_match_internal<T>(
     instruction_loader: &impl ix_utils::InstructionLoader,
+    input_mint: &Pubkey,
+    output_mint: &Pubkey,
 ) -> Result<T>
 where
     T: Discriminator + AnchorDeserialize,
 {
     let current_idx = instruction_loader.load_current_index()?.into();
-    let second_ix = search_second_ix(current_idx, instruction_loader)?;
+    let second_ix = search_second_ix(current_idx, instruction_loader, input_mint, output_mint)?;
     if let Some(discriminator) = second_ix.data.get(..8) {
         if discriminator != T::discriminator() {
             msg!("Extra ix is not the expected one");
@@ -67,6 +77,8 @@ where
 fn search_second_ix(
     current_idx: usize,
     instruction_loader: &impl ix_utils::InstructionLoader,
+    input_mint: &Pubkey,
+    output_mint: &Pubkey,
 ) -> Result<Instruction> {
     for idx in 0..current_idx {
         let ix = instruction_loader.load_instruction_at(idx)?;
@@ -75,6 +87,10 @@ fn search_second_ix(
             program_id_allowed(ix.program_id),
             LimoError::FlashTxWithUnexpectedIxs
         );
+
+        if ix.program_id == token_2022::ID {
+            token_2022_verify_ix_and_mints(&ix, input_mint, output_mint)?;
+        }
     }
 
     let mut found_extra_ix = None;
@@ -103,6 +119,9 @@ fn search_second_ix(
             program_id_allowed(ix.program_id),
             LimoError::FlashTxWithUnexpectedIxs
         );
+        if ix.program_id == token_2022::ID {
+            token_2022_verify_ix_and_mints(&ix, input_mint, output_mint)?;
+        }
     }
 
     Ok(extra_ix)
@@ -115,24 +134,30 @@ fn program_id_allowed(program_id: Pubkey) -> bool {
         || program_id == associated_token::ID
 }
 
-pub fn ensure_first_ix_match<T>(instruction_sysvar_account_info: &AccountInfo) -> Result<T>
+pub fn ensure_first_ix_match<T>(
+    instruction_sysvar_account_info: &AccountInfo,
+    input_mint: &Pubkey,
+    output_mint: &Pubkey,
+) -> Result<T>
 where
     T: Discriminator + AnchorDeserialize,
 {
     let instruction_loader = ix_utils::BpfInstructionLoader {
         instruction_sysvar_account_info,
     };
-    ensure_first_ix_match_internal(&instruction_loader)
+    ensure_first_ix_match_internal(&instruction_loader, input_mint, output_mint)
 }
 
 fn ensure_first_ix_match_internal<T>(
     instruction_loader: &impl ix_utils::InstructionLoader,
+    input_mint: &Pubkey,
+    output_mint: &Pubkey,
 ) -> Result<T>
 where
     T: Discriminator + AnchorDeserialize,
 {
     let current_idx = instruction_loader.load_current_index()?.into();
-    let first_ix = search_first_ix(current_idx, instruction_loader)?;
+    let first_ix = search_first_ix(current_idx, instruction_loader, input_mint, output_mint)?;
     if let Some(discriminator) = first_ix.data.get(..8) {
         if discriminator != T::discriminator() {
             msg!("Extra ix is not the expected one");
@@ -168,6 +193,8 @@ where
 fn search_first_ix(
     current_idx: usize,
     instruction_loader: &impl ix_utils::InstructionLoader,
+    input_mint: &Pubkey,
+    output_mint: &Pubkey,
 ) -> Result<Instruction> {
     let mut ix_iterator =
         ix_utils::IxIterator::new_at(current_idx.checked_add(1).unwrap(), instruction_loader);
@@ -181,6 +208,9 @@ fn search_first_ix(
             program_id_allowed(ix.program_id),
             LimoError::FlashTxWithUnexpectedIxs
         );
+        if ix.program_id == token_2022::ID {
+            token_2022_verify_ix_and_mints(&ix, input_mint, output_mint)?;
+        }
     }
 
     let mut found_extra_ix = None;
@@ -195,12 +225,85 @@ fn search_first_ix(
                 program_id_allowed(ix.program_id),
                 LimoError::FlashTxWithUnexpectedIxs
             );
+            if ix.program_id == token_2022::ID {
+                token_2022_verify_ix_and_mints(&ix, input_mint, output_mint)?;
+            }
         }
     }
 
     let extra_ix = found_extra_ix.ok_or_else(|| error!(LimoError::FlashIxsNotStarted))?;
 
     Ok(extra_ix)
+}
+
+fn token_2022_verify_ix_and_mints(
+    instruction: &Instruction,
+    input_mint: &Pubkey,
+    output_mint: &Pubkey,
+) -> Result<()> {
+    if instruction.program_id != token_2022::ID {
+        return Ok(());
+    }
+
+    let ix = TokenInstruction::unpack(&instruction.data).map_err(|err| {
+        msg!("Error unpacking token instruction: {:?}", err);
+        err
+    })?;
+
+    let is_permitted = match ix {
+        TokenInstruction::Approve { .. }
+        | TokenInstruction::ApproveChecked { .. }
+        | TokenInstruction::InitializeImmutableOwner
+        | TokenInstruction::InitializeMultisig { .. }
+        | TokenInstruction::InitializeMultisig2 { .. }
+        | TokenInstruction::Revoke
+        | TokenInstruction::SyncNative => true,
+
+        TokenInstruction::Burn { .. }
+        | TokenInstruction::BurnChecked { .. }
+        | TokenInstruction::CloseAccount
+        | TokenInstruction::FreezeAccount
+        | TokenInstruction::GetAccountDataSize { .. }
+        | TokenInstruction::InitializeAccount
+        | TokenInstruction::InitializeAccount2 { .. }
+        | TokenInstruction::InitializeAccount3 { .. }
+        | TokenInstruction::InitializeMint { .. }
+        | TokenInstruction::InitializeMint2 { .. }
+        | TokenInstruction::MintTo { .. }
+        | TokenInstruction::MintToChecked { .. }
+        | TokenInstruction::SetAuthority { .. }
+        | TokenInstruction::TransferChecked { .. } => {
+            let mint = instruction.accounts[match ix {
+                TokenInstruction::GetAccountDataSize { .. }
+                | TokenInstruction::InitializeMint { .. }
+                | TokenInstruction::InitializeMint2 { .. }
+                | TokenInstruction::MintTo { .. }
+                | TokenInstruction::MintToChecked { .. } => 0,
+                TokenInstruction::Burn { .. }
+                | TokenInstruction::BurnChecked { .. }
+                | TokenInstruction::FreezeAccount
+                | TokenInstruction::InitializeAccount
+                | TokenInstruction::InitializeAccount2 { .. }
+                | TokenInstruction::InitializeAccount3 { .. }
+                | TokenInstruction::SetAuthority { .. }
+                | TokenInstruction::TransferChecked { .. }
+                | TokenInstruction::CloseAccount => 1,
+                _ => 0,
+            }]
+            .pubkey;
+
+            *input_mint == mint || *output_mint == mint
+        }
+
+        #[allow(deprecated)]
+        TokenInstruction::Transfer { .. } => false,
+
+        _ => false,
+    };
+
+    require!(is_permitted, LimoError::FlashTxWithUnexpectedIxs);
+
+    Ok(())
 }
 
 mod ix_utils {

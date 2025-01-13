@@ -2,16 +2,21 @@ use anchor_lang::{prelude::*, Accounts};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 use crate::{
-    global_seeds, operations, seeds,
-    seeds::GLOBAL_AUTH,
+    global_seeds, operations,
+    seeds::{self, GLOBAL_AUTH},
     state::Order,
     token_operations::{
         lamports_transfer_from_authority_to_account, transfer_from_vault_to_token_account,
     },
+    utils::constraints::token_2022::validate_token_extensions,
     GlobalConfig, OrderDisplay,
 };
 
 pub fn handler_close_order_and_claim_tip(ctx: Context<CloseOrderAndClaimTip>) -> Result<()> {
+    validate_token_extensions(
+        &ctx.accounts.input_mint.to_account_info(),
+        vec![&ctx.accounts.maker_input_ata.to_account_info()],
+    )?;
     let order = &mut ctx.accounts.order.load_mut()?;
     let global_config = &mut ctx.accounts.global_config.load_mut()?;
 
@@ -57,6 +62,7 @@ pub fn handler_close_order_and_claim_tip(ctx: Context<CloseOrderAndClaimTip>) ->
         tip_amount: order.tip_amount,
         number_of_fills: order.number_of_fills,
         on_event_output_amount_filled: 0,
+        on_event_tip_amount: 0,
         order_type: order.order_type,
         status: order.status,
         last_updated_timestamp: order.last_updated_timestamp,

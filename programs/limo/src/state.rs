@@ -2,7 +2,7 @@ use anchor_lang::prelude::{Pubkey, *};
 use derivative::Derivative;
 use num_enum::TryFromPrimitive;
 
-use crate::utils::consts::UPDATE_GLOBAL_CONFIG_BYTE_SIZE;
+use crate::{utils::consts::UPDATE_GLOBAL_CONFIG_BYTE_SIZE, LimoError};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum OrderStatus {
@@ -45,11 +45,12 @@ impl From<OrderType> for u8 {
     }
 }
 
-impl From<u8> for OrderType {
-    fn from(val: u8) -> Self {
+impl TryFrom<u8> for OrderType {
+    type Error = LimoError;
+    fn try_from(val: u8) -> core::result::Result<Self, LimoError> {
         match val {
-            0 => OrderType::Vanilla,
-            _ => panic!("Invalid OrderType"),
+            0 => Ok(OrderType::Vanilla),
+            _ => Err(LimoError::OrderTypeInvalid),
         }
     }
 }
@@ -96,6 +97,7 @@ pub struct OrderDisplay {
     pub number_of_fills: u64,
 
     pub on_event_output_amount_filled: u64,
+    pub on_event_tip_amount: u64,
 
     pub order_type: u8,
     pub status: u8,
