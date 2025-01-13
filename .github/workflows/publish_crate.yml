@@ -68,7 +68,7 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_API_KEY }}
         working-directory: "programs/limo"
-        run: cargo publish
+        run: cargo publish --allow-dirty
 
       # Step 6: Push to GitHub
       - name: Configure Git User
