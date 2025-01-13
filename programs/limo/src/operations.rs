@@ -45,9 +45,6 @@ pub fn create_order(
     in_vault_bump: u8,
     current_timestamp: i64,
 ) -> Result<()> {
-    require!(input_amount > 0, LimoError::OrderInputAmountInvalid);
-    require!(output_amount > 0, LimoError::OrderOutputAmountInvalid);
-    require!(input_mint != output_mint, LimoError::OrderSameMint);
     order.global_config = global_config;
     order.initial_input_amount = input_amount;
     order.remaining_input_amount = input_amount;

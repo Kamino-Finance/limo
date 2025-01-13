@@ -5,7 +5,8 @@ use crate::{
     operations, seeds,
     state::{GlobalConfig, Order},
     token_operations::transfer_from_user_to_token_account,
-    OrderDisplay,
+    utils::constraints::token_2022::validate_token_extensions,
+    LimoError, OrderDisplay, OrderType,
 };
 
 pub fn handler_create_order(
@@ -14,6 +15,20 @@ pub fn handler_create_order(
     output_amount: u64,
     order_type: u8,
 ) -> Result<()> {
+    validate_token_extensions(
+        &ctx.accounts.input_mint.to_account_info(),
+        vec![&ctx.accounts.maker_ata.to_account_info()],
+    )?;
+    validate_token_extensions(&ctx.accounts.output_mint.to_account_info(), vec![])?;
+
+    require!(input_amount > 0, LimoError::OrderInputAmountInvalid);
+    require!(output_amount > 0, LimoError::OrderOutputAmountInvalid);
+    require!(
+        ctx.accounts.input_mint.key() != ctx.accounts.output_mint.key(),
+        LimoError::OrderSameMint
+    );
+    OrderType::try_from(order_type).map_err(|_| LimoError::OrderTypeInvalid)?;
+
     let order = &mut ctx.accounts.order.load_init()?;
     let clock = Clock::get()?;
 
@@ -59,6 +74,7 @@ pub fn handler_create_order(
         tip_amount: order.tip_amount,
         number_of_fills: order.number_of_fills,
         on_event_output_amount_filled: 0,
+        on_event_tip_amount: 0,
         order_type: order.order_type,
         status: order.status,
         last_updated_timestamp: order.last_updated_timestamp,

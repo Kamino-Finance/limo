@@ -4,10 +4,9 @@ use express_relay::{program::ExpressRelay, state::ExpressRelayMetadata};
 use solana_program::sysvar::{instructions::Instructions as SysInstructions, SysvarId};
 
 use crate::{
-    global_seeds, intermediary_seeds, operations,
-    operations::validate_pda_authority_balance_and_update_accounting,
-    seeds,
-    seeds::{GLOBAL_AUTH, INTERMEDIARY_OUTPUT_TOKEN_ACCOUNT},
+    global_seeds, intermediary_seeds,
+    operations::{self, validate_pda_authority_balance_and_update_accounting},
+    seeds::{self, GLOBAL_AUTH, INTERMEDIARY_OUTPUT_TOKEN_ACCOUNT},
     state::{GlobalConfig, Order, TakeOrderEffects},
     token_operations::{
         close_ata_accounts_with_signer_seeds,
@@ -17,7 +16,7 @@ use crate::{
     },
     utils::constraints::{
         check_permission_express_relay_and_get_fees, is_permissionless_order_taking_allowed,
-        is_wsol, verify_ata,
+        is_wsol, token_2022::validate_token_extensions, verify_ata,
     },
     LimoError, OrderDisplay,
 };
@@ -28,6 +27,25 @@ pub fn handler_take_order(
     min_output_amount: u64,
     tip_amount_permissionless_taking: u64,
 ) -> Result<()> {
+    validate_token_extensions(
+        &ctx.accounts.input_mint.to_account_info(),
+        vec![&ctx.accounts.taker_input_ata.to_account_info()],
+    )?;
+    if let Some(maker_output_ata_account) = ctx.accounts.maker_output_ata.as_ref() {
+        validate_token_extensions(
+            &ctx.accounts.output_mint.to_account_info(),
+            vec![
+                &ctx.accounts.taker_output_ata.to_account_info(),
+                &maker_output_ata_account.to_account_info(),
+            ],
+        )?;
+    } else {
+        validate_token_extensions(
+            &ctx.accounts.output_mint.to_account_info(),
+            vec![&ctx.accounts.taker_output_ata.to_account_info()],
+        )?;
+    }
+
     let global_config = &mut ctx.accounts.global_config.load_mut()?;
     let permissionless_required = ctx.accounts.permission.is_none();
 
@@ -70,6 +88,7 @@ pub fn handler_take_order(
         tip_amount: order.tip_amount,
         number_of_fills: order.number_of_fills,
         on_event_output_amount_filled: output_to_send_to_maker,
+        on_event_tip_amount: tip,
         order_type: order.order_type,
         status: order.status,
         last_updated_timestamp: order.last_updated_timestamp,
