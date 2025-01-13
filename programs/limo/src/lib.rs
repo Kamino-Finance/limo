@@ -137,7 +137,7 @@ pub mod limo {
 }
 
 #[error_code]
-#[derive(Error, PartialEq, Eq, strum::EnumString, TryFromPrimitive)]
+#[derive(Error, PartialEq, Eq, TryFromPrimitive)]
 pub enum LimoError {
     #[msg("Order can't be canceled")]
     OrderCanNotBeCanceled,
@@ -249,6 +249,15 @@ pub enum LimoError {
 
     #[msg("Order input and output mints are the same")]
     OrderSameMint,
+
+    #[msg("Mint has a token (2022) extension that is not supported")]
+    UnsupportedTokenExtension,
+
+    #[msg("Can't have an spl token mint with a t22 account")]
+    InvalidTokenAccount,
+
+    #[msg("The order type is invalid")]
+    OrderTypeInvalid,
 }
 
 impl From<TryFromIntError> for LimoError {

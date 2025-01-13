@@ -15,10 +15,11 @@ use solana_program::sysvar::{instructions::Instructions as SysInstructions, Sysv
 use crate::{
     global_seeds,
     instruction::{FlashTakeOrderEnd, FlashTakeOrderStart},
-    intermediary_seeds, operations,
-    operations::{flash_pay_order_output, validate_pda_authority_balance_and_update_accounting},
-    seeds,
-    seeds::{GLOBAL_AUTH, INTERMEDIARY_OUTPUT_TOKEN_ACCOUNT},
+    intermediary_seeds,
+    operations::{
+        self, flash_pay_order_output, validate_pda_authority_balance_and_update_accounting,
+    },
+    seeds::{self, GLOBAL_AUTH, INTERMEDIARY_OUTPUT_TOKEN_ACCOUNT},
     state::{GlobalConfig, Order, TakeOrderEffects},
     token_operations::{
         close_ata_accounts_with_signer_seeds,
@@ -29,7 +30,7 @@ use crate::{
     utils::{
         constraints::{
             check_permission_express_relay_and_get_fees, is_permissionless_order_taking_allowed,
-            is_wsol, verify_ata,
+            is_wsol, token_2022::validate_token_extensions, verify_ata,
         },
         flash_ixs,
     },
@@ -37,6 +38,25 @@ use crate::{
 };
 
 fn handler_checks(ctx: &Context<FlashTakeOrder>) -> Result<()> {
+    validate_token_extensions(
+        &ctx.accounts.input_mint.to_account_info(),
+        vec![&ctx.accounts.taker_input_ata.to_account_info()],
+    )?;
+    if let Some(maker_output_ata_account) = ctx.accounts.maker_output_ata.as_ref() {
+        validate_token_extensions(
+            &ctx.accounts.output_mint.to_account_info(),
+            vec![
+                &ctx.accounts.taker_output_ata.to_account_info(),
+                &maker_output_ata_account.to_account_info(),
+            ],
+        )?;
+    } else {
+        validate_token_extensions(
+            &ctx.accounts.output_mint.to_account_info(),
+            vec![&ctx.accounts.taker_output_ata.to_account_info()],
+        )?;
+    }
+
     let instruction_sysvar_account = ctx.accounts.sysvar_instructions.to_account_info();
     let current_ix_progrm_id = get_instruction_relative(0, &instruction_sysvar_account)?.program_id;
 
@@ -71,8 +91,11 @@ pub fn handler_start(
 ) -> Result<()> {
     handler_checks(&ctx)?;
 
-    let pay: FlashTakeOrderEnd =
-        flash_ixs::ensure_second_ix_match(&ctx.accounts.sysvar_instructions)?;
+    let pay: FlashTakeOrderEnd = flash_ixs::ensure_second_ix_match(
+        &ctx.accounts.sysvar_instructions,
+        &ctx.accounts.input_mint.key(),
+        &ctx.accounts.output_mint.key(),
+    )?;
 
     require_eq!(
         input_amount,
@@ -125,8 +148,11 @@ pub fn handler_end(
 ) -> Result<()> {
     handler_checks(&ctx)?;
 
-    let withdraw: FlashTakeOrderStart =
-        flash_ixs::ensure_first_ix_match(&ctx.accounts.sysvar_instructions)?;
+    let withdraw: FlashTakeOrderStart = flash_ixs::ensure_first_ix_match(
+        &ctx.accounts.sysvar_instructions,
+        &ctx.accounts.input_mint.key(),
+        &ctx.accounts.output_mint.key(),
+    )?;
 
     require_eq!(
         input_amount,
@@ -182,6 +208,7 @@ pub fn handler_end(
         tip_amount: order.tip_amount,
         number_of_fills: order.number_of_fills,
         on_event_output_amount_filled: output_to_send_to_maker,
+        on_event_tip_amount: tip,
         order_type: order.order_type,
         status: order.status,
         last_updated_timestamp: order.last_updated_timestamp,
