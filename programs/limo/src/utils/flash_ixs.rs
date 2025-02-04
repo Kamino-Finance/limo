@@ -257,11 +257,11 @@ fn token_2022_verify_ix_and_mints(
         | TokenInstruction::InitializeMultisig { .. }
         | TokenInstruction::InitializeMultisig2 { .. }
         | TokenInstruction::Revoke
-        | TokenInstruction::SyncNative => true,
+        | TokenInstruction::SyncNative
+        | TokenInstruction::CloseAccount => true,
 
         TokenInstruction::Burn { .. }
         | TokenInstruction::BurnChecked { .. }
-        | TokenInstruction::CloseAccount
         | TokenInstruction::FreezeAccount
         | TokenInstruction::GetAccountDataSize { .. }
         | TokenInstruction::InitializeAccount
@@ -271,7 +271,6 @@ fn token_2022_verify_ix_and_mints(
         | TokenInstruction::InitializeMint2 { .. }
         | TokenInstruction::MintTo { .. }
         | TokenInstruction::MintToChecked { .. }
-        | TokenInstruction::SetAuthority { .. }
         | TokenInstruction::TransferChecked { .. } => {
             let mint = instruction.accounts[match ix {
                 TokenInstruction::GetAccountDataSize { .. }
@@ -285,9 +284,7 @@ fn token_2022_verify_ix_and_mints(
                 | TokenInstruction::InitializeAccount
                 | TokenInstruction::InitializeAccount2 { .. }
                 | TokenInstruction::InitializeAccount3 { .. }
-                | TokenInstruction::SetAuthority { .. }
-                | TokenInstruction::TransferChecked { .. }
-                | TokenInstruction::CloseAccount => 1,
+                | TokenInstruction::TransferChecked { .. } => 1,
                 _ => 0,
             }]
             .pubkey;
@@ -296,7 +293,7 @@ fn token_2022_verify_ix_and_mints(
         }
 
         #[allow(deprecated)]
-        TokenInstruction::Transfer { .. } => false,
+        TokenInstruction::SetAuthority { .. } | TokenInstruction::Transfer { .. } => false,
 
         _ => false,
     };
