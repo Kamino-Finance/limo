@@ -16,10 +16,9 @@ pub fn handler_initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {
 #[derive(Accounts)]
 pub struct InitializeVault<'info> {
     #[account(mut)]
-    pub admin_authority: Signer<'info>,
+    pub payer: Signer<'info>,
 
     #[account(mut,
-        has_one = admin_authority @ LimoError::InvalidAdminAuthority,
         has_one = pda_authority @ LimoError::InvalidPdaAuthority,
     )]
     pub global_config: AccountLoader<'info, GlobalConfig>,
@@ -37,7 +36,7 @@ pub struct InitializeVault<'info> {
     #[account(init,
         seeds = [seeds::ESCROW_VAULT, global_config.key().as_ref(), mint.key().as_ref()],
         bump,
-        payer = admin_authority,
+        payer = payer,
         token::mint = mint,
         token::authority = pda_authority,
         token::token_program = token_program,
