@@ -105,6 +105,13 @@ pub struct OrderDisplay {
     pub last_updated_timestamp: u64,
 }
 
+#[event]
+pub struct UserSwapBalances {
+    pub user_lamports: u64,
+    pub input_ta_balance: u64,
+    pub output_ta_balance: u64,
+}
+
 #[derive(PartialEq, Derivative)]
 #[derivative(Debug)]
 #[account(zero_copy)]

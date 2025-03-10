@@ -134,6 +134,10 @@ pub mod limo {
     pub fn withdraw_host_tip(ctx: Context<WithdrawHostTip>) -> Result<()> {
         handlers::withdraw_host_tip::withdraw_host_tip(ctx)
     }
+
+    pub fn log_user_swap_balances(ctx: Context<LogUserSwapBalances>) -> Result<()> {
+        handlers::log_user_swap_balances::handler_log_user_swap_balances(ctx)
+    }
 }
 
 #[error_code]
