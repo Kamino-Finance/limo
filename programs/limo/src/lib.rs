@@ -262,6 +262,21 @@ pub enum LimoError {
 
     #[msg("The order type is invalid")]
     OrderTypeInvalid,
+
+    #[msg("Token account is not initialized")]
+    UninitializedTokenAccount,
+
+    #[msg("Account is not owned by the token program")]
+    InvalidTokenAccountOwner,
+
+    #[msg("Account is not a valid token account")]
+    InvalidAccount,
+
+    #[msg("Token account has incorrect mint")]
+    InvalidTokenMint,
+
+    #[msg("Token account has incorrect authority")]
+    InvalidTokenAuthority,
 }
 
 impl From<TryFromIntError> for LimoError {

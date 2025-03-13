@@ -1,22 +1,34 @@
 use anchor_lang::{prelude::*, Accounts};
-use anchor_spl::token_interface::{Mint, TokenAccount};
+use anchor_spl::token_interface::Mint;
 
-use crate::UserSwapBalances;
+use crate::{utils::constraints::get_token_account_checked, UserSwapBalances};
 
 pub fn handler_log_user_swap_balances(ctx: Context<LogUserSwapBalances>) -> Result<()> {
     let lamports_balance = ctx.accounts.maker.lamports();
-    let output_balance = ctx.accounts.output_ta.amount;
-    let input_balance = ctx.accounts.input_ta.amount;
 
-    msg!(
-        "Balances for user {}, lamports {}, input_amount {}, input_mint {}, output_amount {}, output_mint {}",
-        ctx.accounts.maker.key(),
-        lamports_balance,
-        input_balance,
-        ctx.accounts.input_mint.key(),
-        output_balance,
-        ctx.accounts.output_mint.key(),
-    );
+    let input_balance = if ctx.accounts.input_ta.data_len() > 0 {
+        let input_token_account = get_token_account_checked(
+            &ctx.accounts.input_ta.to_account_info(),
+            &ctx.accounts.input_mint.key(),
+            &ctx.accounts.maker.key(),
+        )?;
+
+        input_token_account.amount
+    } else {
+        0
+    };
+
+    let output_balance = if ctx.accounts.output_ta.data_len() > 0 {
+        let output_token_account = get_token_account_checked(
+            &ctx.accounts.output_ta.to_account_info(),
+            &ctx.accounts.output_mint.key(),
+            &ctx.accounts.maker.key(),
+        )?;
+
+        output_token_account.amount
+    } else {
+        0
+    };
 
     emit_cpi!(UserSwapBalances {
         user_lamports: lamports_balance,
@@ -37,15 +49,9 @@ pub struct LogUserSwapBalances<'info> {
 
     pub output_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    #[account(mut,
-        token::mint = input_mint,
-        token::authority = maker
-    )]
-    pub input_ta: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub input_ta: UncheckedAccount<'info>,
 
-    #[account(mut,
-      token::mint = output_mint,
-      token::authority = maker
-  )]
-    pub output_ta: Box<InterfaceAccount<'info, TokenAccount>>,
+    pub output_ta: UncheckedAccount<'info>,
+
+    pub pda_referrer: Option<AccountInfo<'info>>,
 }
