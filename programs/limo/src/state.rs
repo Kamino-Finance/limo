@@ -105,11 +105,24 @@ pub struct OrderDisplay {
     pub last_updated_timestamp: u64,
 }
 
-#[event]
-pub struct UserSwapBalances {
+#[derive(PartialEq, Derivative)]
+#[derivative(Debug)]
+#[account(zero_copy)]
+pub struct UserSwapBalancesState {
     pub user_lamports: u64,
     pub input_ta_balance: u64,
     pub output_ta_balance: u64,
+}
+
+#[event]
+pub struct UserSwapBalanceDiffs {
+    pub user_lamports_before: u64,
+    pub input_ta_balance_before: u64,
+    pub output_ta_balance_before: u64,
+    pub user_lamports_after: u64,
+    pub input_ta_balance_after: u64,
+    pub output_ta_balance_after: u64,
+    pub swap_program: Pubkey,
 }
 
 #[derive(PartialEq, Derivative)]
@@ -137,8 +150,10 @@ pub struct GlobalConfig {
     pub pda_authority_bump: u64,
     pub admin_authority: Pubkey,
     pub admin_authority_cached: Pubkey,
+    pub txn_fee_cost: u64,
+    pub ata_creation_cost: u64,
 
-    pub padding2: [u64; 243],
+    pub padding2: [u64; 241],
 }
 
 impl Default for GlobalConfig {
@@ -165,9 +180,11 @@ impl Default for GlobalConfig {
             admin_authority: Pubkey::default(),
             admin_authority_cached: Pubkey::default(),
             emergency_mode: 0,
+            ata_creation_cost: 0,
+            txn_fee_cost: 0,
             padding0: [0; 1],
             padding1: [0; 9],
-            padding2: [0; 243],
+            padding2: [0; 241],
         }
     }
 }
@@ -193,6 +210,8 @@ pub enum UpdateGlobalConfigMode {
     UpdateAdminAuthorityCached = 5,
     UpdateOrderTakingPermissionless = 6,
     UpdateOrderCloseDelaySeconds = 7,
+    UpdateTxnFeeCost = 8,
+    UpdateAtaCreationCost = 9,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -223,4 +242,11 @@ impl UpdateGlobalConfigValue {
         }
         raw_bytes_array
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GetBalancesCheckedResult {
+    pub lamports_balance: u64,
+    pub input_balance: u64,
+    pub output_balance: u64,
 }
