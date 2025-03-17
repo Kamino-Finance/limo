@@ -4,6 +4,7 @@ pub const ESCROW_VAULT: &[u8] = b"escrow_vault";
 pub const INTERMEDIARY_OUTPUT_TOKEN_ACCOUNT: &[u8] = b"intermediary";
 pub const EVENT_AUTHORITY: &[u8] = b"__event_authority";
 pub const REFERRER_SEED: &[u8] = b"referrer";
+pub const USER_SWAP_BALANCES_SEED: &[u8] = b"balances";
 
 mod macros {
     #[macro_export]

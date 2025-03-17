@@ -1,5 +1,6 @@
 use anchor_lang::{prelude::*, Accounts};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
+use solana_program::{program::invoke, system_instruction};
 
 use crate::{
     operations, seeds,
@@ -57,6 +58,24 @@ pub fn handler_create_order(
         ctx.accounts.input_mint.decimals,
     )?;
 
+    let gc_state = ctx.accounts.global_config.load()?;
+    let lamports = gc_state.ata_creation_cost + gc_state.txn_fee_cost;
+    drop(gc_state);
+    if lamports > 0 {
+        let maker = ctx.accounts.maker.key();
+        let gc = ctx.accounts.global_config.key();
+        let ixn = system_instruction::transfer(&maker, &gc, lamports);
+
+        invoke(
+            &ixn,
+            &[
+                ctx.accounts.maker.to_account_info().clone(),
+                ctx.accounts.global_config.to_account_info().clone(),
+                ctx.accounts.system_program.to_account_info().clone(),
+            ],
+        )?;
+    }
+
     msg!(
         "Created order {}, input_amount {}, input_mint {}, output_amount {}, output_mint {}",
         ctx.accounts.order.key(),
@@ -89,7 +108,7 @@ pub struct CreateOrder<'info> {
     #[account(mut)]
     pub maker: Signer<'info>,
 
-    #[account(has_one = pda_authority)]
+    #[account(mut, has_one = pda_authority)]
     pub global_config: AccountLoader<'info, GlobalConfig>,
 
     #[account()]
@@ -124,4 +143,5 @@ pub struct CreateOrder<'info> {
 
     pub input_token_program: Interface<'info, TokenInterface>,
     pub output_token_program: Interface<'info, TokenInterface>,
+    pub system_program: Program<'info, System>,
 }

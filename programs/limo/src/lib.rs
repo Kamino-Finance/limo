@@ -135,8 +135,18 @@ pub mod limo {
         handlers::withdraw_host_tip::withdraw_host_tip(ctx)
     }
 
-    pub fn log_user_swap_balances(ctx: Context<LogUserSwapBalances>) -> Result<()> {
-        handlers::log_user_swap_balances::handler_log_user_swap_balances(ctx)
+    pub fn log_user_swap_balances_start(
+        ctx: Context<LogUserSwapBalancesStart>,
+        swap_program_id: Pubkey,
+    ) -> Result<()> {
+        handlers::log_user_swap_balances::handler_log_user_swap_balances_start(ctx, swap_program_id)
+    }
+
+    pub fn log_user_swap_balances_end(
+        ctx: Context<LogUserSwapBalancesEnd>,
+        swap_program_id: Pubkey,
+    ) -> Result<()> {
+        handlers::log_user_swap_balances::handler_log_user_swap_balances_end(ctx, swap_program_id)
     }
 }
 
