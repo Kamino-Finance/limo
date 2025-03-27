@@ -937,11 +937,12 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "express-relay"
-version = "0.3.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3a88d4784614b05b9de5d479efda6be08a577ce73ded9913ac6e30f1653fdb8"
+checksum = "530dc7120227531d12148afca07b36704727d6911a63e4db771b27575e37dafe"
 dependencies = [
  "anchor-lang",
+ "anchor-spl",
 ]
 
 [[package]]

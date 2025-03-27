@@ -37,7 +37,7 @@ bincode = "1.3.3"
 fixed = { version = "=1.23.1" }
 fixed-macro = "=1.1"
 uint = "0.9.5"
-express-relay = { version = "0.3.0", features = [
+express-relay = { version = "0.7.0", features = [
     "no-entrypoint",
 ] }
 
