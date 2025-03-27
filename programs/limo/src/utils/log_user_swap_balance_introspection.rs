@@ -103,15 +103,6 @@ fn search_end_ix(
         return err!(LimoError::FlashTxWithUnexpectedIxs);
     }
 
-    if let Some(ix) = ix_iterator.by_ref().next() {
-        if ix.is_err() {
-            msg!("Unexpected error encountered while iterating over instructions");
-        }
-        let _ix = ix?;
-        msg!("Additional instructions found after end ix");
-        return err!(LimoError::FlashTxWithUnexpectedIxs);
-    }
-
     Ok(end_ix)
 }
 
