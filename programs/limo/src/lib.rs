@@ -136,17 +136,13 @@ pub mod limo {
     }
 
     pub fn log_user_swap_balances_start(
-        ctx: Context<LogUserSwapBalancesStart>,
-        swap_program_id: Pubkey,
+        ctx: Context<LogUserSwapBalancesStartContext>,
     ) -> Result<()> {
-        handlers::log_user_swap_balances::handler_log_user_swap_balances_start(ctx, swap_program_id)
+        handlers::log_user_swap_balances::handler_log_user_swap_balances_start(ctx)
     }
 
-    pub fn log_user_swap_balances_end(
-        ctx: Context<LogUserSwapBalancesEnd>,
-        swap_program_id: Pubkey,
-    ) -> Result<()> {
-        handlers::log_user_swap_balances::handler_log_user_swap_balances_end(ctx, swap_program_id)
+    pub fn log_user_swap_balances_end(ctx: Context<LogUserSwapBalancesEndContext>) -> Result<()> {
+        handlers::log_user_swap_balances::handler_log_user_swap_balances_end(ctx)
     }
 }
 

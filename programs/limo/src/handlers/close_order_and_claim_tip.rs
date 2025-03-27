@@ -52,7 +52,6 @@ pub fn handler_close_order_and_claim_tip(ctx: Context<CloseOrderAndClaimTip>) ->
     }
 
     global_config.pda_authority_previous_lamports_balance = ctx.accounts.pda_authority.lamports();
-    order.last_updated_timestamp = ts;
 
     emit_cpi!(OrderDisplay {
         initial_input_amount: order.initial_input_amount,

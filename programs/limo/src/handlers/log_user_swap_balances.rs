@@ -1,16 +1,26 @@
 use anchor_lang::{prelude::*, Accounts};
 use anchor_spl::token_interface::Mint;
+use solana_program::sysvar::{instructions::Instructions as SysInstructions, SysvarId};
 
 use crate::{
+    instruction::{LogUserSwapBalancesEnd, LogUserSwapBalancesStart},
     seeds,
-    utils::{constraints::get_token_account_checked, consts::USER_SWAP_BALANCE_STATE_SIZE},
+    utils::{
+        constraints::get_token_account_checked, consts::USER_SWAP_BALANCE_STATE_SIZE,
+        log_user_swap_balance_introspection,
+    },
     GetBalancesCheckedResult, UserSwapBalanceDiffs, UserSwapBalancesState,
 };
 
 pub fn handler_log_user_swap_balances_start(
-    ctx: Context<LogUserSwapBalancesStart>,
-    _swap_program_id: Pubkey,
+    ctx: Context<LogUserSwapBalancesStartContext>,
 ) -> Result<()> {
+    let swap_program_id = ctx.accounts.base_accounts.swap_program_id.key();
+    log_user_swap_balance_introspection::ensure_end_ix_match::<LogUserSwapBalancesEnd>(
+        &ctx.accounts.sysvar_instructions,
+        &swap_program_id,
+    )?;
+
     let balances = get_balances_checked(&ctx.accounts.base_accounts)?;
 
     let user_swap_balance_state = &mut ctx.accounts.user_swap_balance_state.load_init()?;
@@ -22,9 +32,14 @@ pub fn handler_log_user_swap_balances_start(
 }
 
 pub fn handler_log_user_swap_balances_end(
-    ctx: Context<LogUserSwapBalancesEnd>,
-    swap_program_id: Pubkey,
+    ctx: Context<LogUserSwapBalancesEndContext>,
 ) -> Result<()> {
+    let swap_program_id = ctx.accounts.base_accounts.swap_program_id.key();
+    log_user_swap_balance_introspection::ensure_start_ix_match::<LogUserSwapBalancesStart>(
+        &ctx.accounts.sysvar_instructions,
+        &swap_program_id,
+    )?;
+
     let balances = get_balances_checked(&ctx.accounts.base_accounts)?;
 
     {
@@ -62,11 +77,13 @@ pub struct LogUserSwapBalances<'info> {
     pub output_ta: UncheckedAccount<'info>,
 
     pub pda_referrer: Option<AccountInfo<'info>>,
+
+    pub swap_program_id: AccountInfo<'info>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct LogUserSwapBalancesStart<'info> {
+pub struct LogUserSwapBalancesStartContext<'info> {
     base_accounts: LogUserSwapBalances<'info>,
 
     #[account(
@@ -81,11 +98,14 @@ pub struct LogUserSwapBalancesStart<'info> {
     pub system_program: Program<'info, System>,
 
     pub rent: Sysvar<'info, Rent>,
+
+    #[account(address = SysInstructions::id())]
+    pub sysvar_instructions: AccountInfo<'info>,
 }
 
 #[event_cpi]
 #[derive(Accounts)]
-pub struct LogUserSwapBalancesEnd<'info> {
+pub struct LogUserSwapBalancesEndContext<'info> {
     base_accounts: LogUserSwapBalances<'info>,
 
     #[account(mut,
@@ -97,6 +117,9 @@ pub struct LogUserSwapBalancesEnd<'info> {
     pub system_program: Program<'info, System>,
 
     pub rent: Sysvar<'info, Rent>,
+
+    #[account(address = SysInstructions::id())]
+    pub sysvar_instructions: AccountInfo<'info>,
 }
 
 pub fn get_balances_checked(ctx: &LogUserSwapBalances) -> Result<GetBalancesCheckedResult> {
