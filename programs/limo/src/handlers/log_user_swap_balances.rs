@@ -33,6 +33,12 @@ pub fn handler_log_user_swap_balances_start(
 
 pub fn handler_log_user_swap_balances_end(
     ctx: Context<LogUserSwapBalancesEndContext>,
+    simulated_swap_amount_out: u64,
+    simulated_ts: u64,
+    minimum_amount_out: u64,
+    swap_amount_in: u64,
+    simulated_amount_out_next_best: u64,
+    next_best_aggregator: [u8; 4],
 ) -> Result<()> {
     let swap_program_id = ctx.accounts.base_accounts.swap_program_id.key();
     log_user_swap_balance_introspection::ensure_start_ix_match::<LogUserSwapBalancesStart>(
@@ -53,6 +59,12 @@ pub fn handler_log_user_swap_balances_end(
             input_ta_balance_after: balances.input_balance,
             output_ta_balance_after: balances.output_balance,
             swap_program: swap_program_id,
+            simulated_swap_amount_out,
+            simulated_ts,
+            minimum_amount_out,
+            swap_amount_in,
+            simulated_amount_out_next_best,
+            next_best_aggregator,
         });
     }
 

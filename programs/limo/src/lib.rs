@@ -141,8 +141,24 @@ pub mod limo {
         handlers::log_user_swap_balances::handler_log_user_swap_balances_start(ctx)
     }
 
-    pub fn log_user_swap_balances_end(ctx: Context<LogUserSwapBalancesEndContext>) -> Result<()> {
-        handlers::log_user_swap_balances::handler_log_user_swap_balances_end(ctx)
+    pub fn log_user_swap_balances_end(
+        ctx: Context<LogUserSwapBalancesEndContext>,
+        simulated_swap_amount_out: u64,
+        simulated_ts: u64,
+        minimum_amount_out: u64,
+        swap_amount_in: u64,
+        simulated_amount_out_next_best: u64,
+        next_best_aggregator: [u8; 4],
+    ) -> Result<()> {
+        handlers::log_user_swap_balances::handler_log_user_swap_balances_end(
+            ctx,
+            simulated_swap_amount_out,
+            simulated_ts,
+            minimum_amount_out,
+            swap_amount_in,
+            simulated_amount_out_next_best,
+            next_best_aggregator,
+        )
     }
 }
 

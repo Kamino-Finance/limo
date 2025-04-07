@@ -123,6 +123,12 @@ pub struct UserSwapBalanceDiffs {
     pub input_ta_balance_after: u64,
     pub output_ta_balance_after: u64,
     pub swap_program: Pubkey,
+    pub simulated_swap_amount_out: u64,
+    pub simulated_ts: u64,
+    pub minimum_amount_out: u64,
+    pub swap_amount_in: u64,
+    pub simulated_amount_out_next_best: u64,
+    pub next_best_aggregator: [u8; 4],
 }
 
 #[derive(PartialEq, Derivative)]
