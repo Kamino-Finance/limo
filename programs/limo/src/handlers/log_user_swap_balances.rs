@@ -31,6 +31,7 @@ pub fn handler_log_user_swap_balances_start(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn handler_log_user_swap_balances_end(
     ctx: Context<LogUserSwapBalancesEndContext>,
     simulated_swap_amount_out: u64,
@@ -38,7 +39,8 @@ pub fn handler_log_user_swap_balances_end(
     minimum_amount_out: u64,
     swap_amount_in: u64,
     simulated_amount_out_next_best: u64,
-    next_best_aggregator: [u8; 4],
+    aggregator: u8,
+    next_best_aggregator: u8,
 ) -> Result<()> {
     let swap_program_id = ctx.accounts.base_accounts.swap_program_id.key();
     log_user_swap_balance_introspection::ensure_start_ix_match::<LogUserSwapBalancesStart>(
@@ -64,6 +66,7 @@ pub fn handler_log_user_swap_balances_end(
             minimum_amount_out,
             swap_amount_in,
             simulated_amount_out_next_best,
+            aggregator,
             next_best_aggregator,
         });
     }

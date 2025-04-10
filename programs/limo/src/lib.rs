@@ -141,6 +141,7 @@ pub mod limo {
         handlers::log_user_swap_balances::handler_log_user_swap_balances_start(ctx)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn log_user_swap_balances_end(
         ctx: Context<LogUserSwapBalancesEndContext>,
         simulated_swap_amount_out: u64,
@@ -148,7 +149,9 @@ pub mod limo {
         minimum_amount_out: u64,
         swap_amount_in: u64,
         simulated_amount_out_next_best: u64,
-        next_best_aggregator: [u8; 4],
+        aggregator: u8,
+        next_best_aggregator: u8,
+        _padding: [u8; 2],
     ) -> Result<()> {
         handlers::log_user_swap_balances::handler_log_user_swap_balances_end(
             ctx,
@@ -157,6 +160,7 @@ pub mod limo {
             minimum_amount_out,
             swap_amount_in,
             simulated_amount_out_next_best,
+            aggregator,
             next_best_aggregator,
         )
     }

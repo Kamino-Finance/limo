@@ -128,7 +128,8 @@ pub struct UserSwapBalanceDiffs {
     pub minimum_amount_out: u64,
     pub swap_amount_in: u64,
     pub simulated_amount_out_next_best: u64,
-    pub next_best_aggregator: [u8; 4],
+    pub aggregator: u8,
+    pub next_best_aggregator: u8,
 }
 
 #[derive(PartialEq, Derivative)]
