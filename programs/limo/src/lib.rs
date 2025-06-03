@@ -64,6 +64,15 @@ pub mod limo {
     }
 
     #[access_control(emergency_mode_disabled(&ctx.accounts.global_config))]
+    pub fn update_order(
+        ctx: Context<UpdateOrder>,
+        mode: UpdateOrderMode,
+        value: Vec<u8>,
+    ) -> Result<()> {
+        handlers::update_order::handler_update_order(ctx, mode, &value)
+    }
+
+    #[access_control(emergency_mode_disabled(&ctx.accounts.global_config))]
     pub fn close_order_and_claim_tip(ctx: Context<CloseOrderAndClaimTip>) -> Result<()> {
         handlers::close_order_and_claim_tip::handler_close_order_and_claim_tip(ctx)
     }
@@ -303,6 +312,12 @@ pub enum LimoError {
 
     #[msg("Token account has incorrect authority")]
     InvalidTokenAuthority,
+
+    #[msg("The provided parameter type is invalid")]
+    InvalidParameterType,
+
+    #[msg("The counterparty is not the taker")]
+    CounterpartyDisallowed,
 }
 
 impl From<TryFromIntError> for LimoError {
