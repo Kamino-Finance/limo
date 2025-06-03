@@ -60,7 +60,31 @@ pub fn create_order(
     order.order_type = order_type;
     order.in_vault_bump = in_vault_bump;
     order.last_updated_timestamp = current_timestamp.try_into().expect("Negative timestamp");
+    order.counterparty = Pubkey::default();
+    order.permissionless = 0;
 
+    Ok(())
+}
+
+pub fn update_order(order: &mut Order, mode: UpdateOrderMode, value: &[u8]) -> Result<()> {
+    match mode {
+        UpdateOrderMode::UpdatePermissionless => {
+            require!(value.len() == 1, LimoError::InvalidParameterType);
+            msg!("update_order mode={:?}", mode);
+            msg!("new={} prev={}", value[0], order.permissionless);
+            order.permissionless = value[0];
+        }
+        UpdateOrderMode::UpdateCounterparty => {
+            require!(value.len() == 32, LimoError::InvalidParameterType);
+            msg!("update_order mode={:?}", mode);
+            msg!("new={:?} prev={}", &value[..32], order.counterparty);
+            order.counterparty = Pubkey::new_from_array(
+                value[..32]
+                    .try_into()
+                    .map_err(|_| LimoError::InvalidParameterType)?,
+            );
+        }
+    }
     Ok(())
 }
 
@@ -410,12 +434,7 @@ fn update_global_config_flag(
             global_config.orders_taking_blocked = value;
         }
         UpdateGlobalConfigMode::UpdateOrderTakingPermissionless => {
-            msg!(
-                "new={} prev={}",
-                value,
-                global_config.is_order_taking_permissionless
-            );
-            global_config.is_order_taking_permissionless = value;
+            msg!("Field deprecated");
         }
         _ => return Err(LimoError::InvalidConfigOption.into()),
     }

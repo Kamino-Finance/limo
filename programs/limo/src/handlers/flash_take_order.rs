@@ -29,8 +29,8 @@ use crate::{
     },
     utils::{
         constraints::{
-            check_permission_express_relay_and_get_fees, is_permissionless_order_taking_allowed,
-            is_wsol, token_2022::validate_token_extensions, verify_ata,
+            check_permission_express_relay_and_get_fees, is_counterparty_matching, is_wsol,
+            token_2022::validate_token_extensions, verify_ata,
         },
         flash_ixs,
     },
@@ -171,13 +171,19 @@ pub fn handler_end(
     );
 
     let global_config = &mut ctx.accounts.global_config.load_mut()?;
-    let permissionless_required = ctx.accounts.permission.is_none();
+    let is_filled_by_per = ctx.accounts.permission.is_some();
+
+    let (is_order_permissionless, order_counterparty) = {
+        let order = &ctx.accounts.order.load()?;
+        (order.permissionless != 0, order.counterparty)
+    };
 
     let tip = check_permission_and_get_tip(
         &ctx,
-        global_config,
+        &order_counterparty,
         tip_amount_permissionless_taking,
-        permissionless_required,
+        is_order_permissionless,
+        is_filled_by_per,
     )?;
 
     let order = &mut ctx.accounts.order.load_mut()?;
@@ -196,7 +202,7 @@ pub fn handler_end(
 
     send_output_token_amount(&ctx, global_config, output_to_send_to_maker)?;
 
-    tip_transfer_and_validation(&ctx, global_config, tip, permissionless_required)?;
+    tip_transfer_and_validation(&ctx, global_config, tip, is_filled_by_per)?;
 
     order.flash_start_taker_output_balance = 0;
 
@@ -310,12 +316,17 @@ pub struct FlashTakeOrder<'info> {
 
 fn check_permission_and_get_tip(
     ctx: &Context<FlashTakeOrder>,
-    global_config: &GlobalConfig,
+    order_counterparty: &Pubkey,
     tip_amount_permissionless_taking: u64,
-    permissionless_required: bool,
+    is_order_permissionless: bool,
+    is_filled_by_per: bool,
 ) -> Result<u64> {
-    if permissionless_required && !is_permissionless_order_taking_allowed(global_config) {
+    if !is_order_permissionless && !is_filled_by_per {
         return err!(LimoError::PermissionRequiredPermissionlessNotEnabled);
+    }
+
+    if !is_counterparty_matching(order_counterparty, &ctx.accounts.taker.key()) {
+        return err!(LimoError::CounterpartyDisallowed);
     }
 
     let tip = if let Some(permission_account) = ctx.accounts.permission.as_ref() {
@@ -436,9 +447,9 @@ fn tip_transfer_and_validation(
     ctx: &Context<FlashTakeOrder>,
     global_config: &mut GlobalConfig,
     tip: u64,
-    permissionless_required: bool,
+    is_filled_by_per: bool,
 ) -> Result<()> {
-    if permissionless_required {
+    if !is_filled_by_per {
         native_transfer_from_user_to_account(
             ctx.accounts.taker.to_account_info(),
             ctx.accounts.pda_authority.to_account_info(),

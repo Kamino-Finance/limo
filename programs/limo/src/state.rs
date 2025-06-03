@@ -1,8 +1,7 @@
+use crate::{utils::consts::UPDATE_GLOBAL_CONFIG_BYTE_SIZE, LimoError};
 use anchor_lang::prelude::{Pubkey, *};
 use derivative::Derivative;
 use num_enum::TryFromPrimitive;
-
-use crate::{utils::consts::UPDATE_GLOBAL_CONFIG_BYTE_SIZE, LimoError};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum OrderStatus {
@@ -79,12 +78,17 @@ pub struct Order {
     pub in_vault_bump: u8,
     pub flash_ix_lock: u8,
 
-    pub padding0: [u8; 4],
+    pub permissionless: u8,
+
+    pub padding0: [u8; 3],
 
     pub last_updated_timestamp: u64,
 
     pub flash_start_taker_output_balance: u64,
-    pub padding: [u64; 19],
+
+    pub counterparty: Pubkey,
+
+    pub padding: [u64; 15],
 }
 
 #[event]
@@ -143,9 +147,7 @@ pub struct GlobalConfig {
 
     pub host_fee_bps: u16,
 
-    pub is_order_taking_permissionless: u8,
-
-    pub padding0: [u8; 1],
+    pub padding0: [u8; 2],
     pub order_close_delay_seconds: u64,
     pub padding1: [u64; 9],
 
@@ -177,7 +179,6 @@ impl Default for GlobalConfig {
             new_orders_blocked: 0,
             orders_taking_blocked: 0,
             host_fee_bps: 0,
-            is_order_taking_permissionless: 0,
             order_close_delay_seconds: 0,
             pda_authority_previous_lamports_balance: 0,
             total_tip_amount: 0,
@@ -189,7 +190,7 @@ impl Default for GlobalConfig {
             emergency_mode: 0,
             ata_creation_cost: 0,
             txn_fee_cost: 0,
-            padding0: [0; 1],
+            padding0: [0; 2],
             padding1: [0; 9],
             padding2: [0; 241],
         }
@@ -256,4 +257,13 @@ pub struct GetBalancesCheckedResult {
     pub lamports_balance: u64,
     pub input_balance: u64,
     pub output_balance: u64,
+}
+
+#[derive(
+    TryFromPrimitive, PartialEq, Eq, Clone, Copy, Debug, AnchorSerialize, AnchorDeserialize,
+)]
+#[repr(u16)]
+pub enum UpdateOrderMode {
+    UpdatePermissionless = 0,
+    UpdateCounterparty = 1,
 }

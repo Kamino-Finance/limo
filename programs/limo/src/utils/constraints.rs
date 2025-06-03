@@ -84,12 +84,12 @@ pub fn verify_ata(
     Ok(())
 }
 
-pub fn is_permissionless_order_taking_allowed(global_config: &GlobalConfig) -> bool {
-    global_config.is_order_taking_permissionless == 1
-}
-
 pub fn is_wsol(mint: &Pubkey) -> bool {
     *mint == token::spl_token::native_mint::ID
+}
+
+pub fn is_counterparty_matching(counterparty: &Pubkey, taker: &Pubkey) -> bool {
+    counterparty.eq(&Pubkey::default()) || taker == counterparty
 }
 
 pub mod token_2022 {
