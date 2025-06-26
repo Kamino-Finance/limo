@@ -1,7 +1,6 @@
-use crate::state::Order;
-use crate::UpdateOrderMode;
-use crate::{operations, GlobalConfig};
 use anchor_lang::prelude::*;
+
+use crate::{operations, state::Order, GlobalConfig, UpdateOrderMode};
 
 pub fn handler_update_order(
     ctx: Context<UpdateOrder>,
