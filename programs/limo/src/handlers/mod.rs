@@ -1,3 +1,4 @@
+pub mod assert_user_swap_balances;
 pub mod close_order_and_claim_tip;
 pub mod create_order;
 pub mod flash_take_order;
@@ -10,6 +11,7 @@ pub mod update_global_config_admin;
 pub mod update_order;
 pub mod withdraw_host_tip;
 
+pub use assert_user_swap_balances::*;
 pub use close_order_and_claim_tip::*;
 pub use create_order::*;
 pub use flash_take_order::*;

@@ -1,7 +1,8 @@
-use crate::{utils::consts::UPDATE_GLOBAL_CONFIG_BYTE_SIZE, LimoError};
 use anchor_lang::prelude::{Pubkey, *};
 use derivative::Derivative;
 use num_enum::TryFromPrimitive;
+
+use crate::{utils::consts::UPDATE_GLOBAL_CONFIG_BYTE_SIZE, LimoError};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum OrderStatus {
@@ -252,7 +253,7 @@ impl UpdateGlobalConfigValue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GetBalancesCheckedResult {
     pub lamports_balance: u64,
     pub input_balance: u64,

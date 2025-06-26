@@ -78,3 +78,12 @@ macro_rules! assert_fuzzy_eq {
         }
     };
 }
+
+#[macro_export]
+macro_rules! require_lte {
+    ($value1: expr, $value2: expr, $error_code: expr $(,)?) => {
+        if $value1 > $value2 {
+            return Err(anchor_lang::error!($error_code).with_values(($value1, $value2)));
+        }
+    };
+}

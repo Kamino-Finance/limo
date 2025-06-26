@@ -173,6 +173,24 @@ pub mod limo {
             next_best_aggregator,
         )
     }
+
+    pub fn assert_user_swap_balances_start(
+        ctx: Context<AssertUserSwapBalancesStartContext>,
+    ) -> Result<()> {
+        handlers::assert_user_swap_balances::handler_assert_user_swap_balances_start(ctx)
+    }
+
+    pub fn assert_user_swap_balances_end(
+        ctx: Context<AssertUserSwapBalancesEndContext>,
+        max_input_amount_change: u64,
+        min_output_amount_change: u64,
+    ) -> Result<()> {
+        handlers::assert_user_swap_balances::handler_assert_user_swap_balances_end(
+            ctx,
+            max_input_amount_change,
+            min_output_amount_change,
+        )
+    }
 }
 
 #[error_code]
@@ -318,6 +336,18 @@ pub enum LimoError {
 
     #[msg("The counterparty is not the taker")]
     CounterpartyDisallowed,
+
+    #[msg("The swap input amount is larger than the maximum allowed")]
+    SwapInputAmountTooLarge,
+
+    #[msg("The swap output amount is smaller than the minimum allowed")]
+    SwapOutputAmountTooSmall,
+
+    #[msg("The swap input balance change is positive, expected negative")]
+    SwapInputInvalidBalanceChange,
+
+    #[msg("The swap output balance change is negative, expected positive")]
+    SwapOutputInvalidBalanceChange,
 }
 
 impl From<TryFromIntError> for LimoError {

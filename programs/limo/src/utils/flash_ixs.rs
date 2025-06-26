@@ -53,23 +53,7 @@ where
     }
 
     let current_ix = instruction_loader.load_instruction_at(current_idx)?;
-    if second_ix.accounts.len() != current_ix.accounts.len() {
-        msg!("Number of accounts mismatch between first and second ix of couple");
-        return err!(LimoError::FlashIxsAccountMismatch);
-    }
-    for (idx, (account_curr, account_other)) in current_ix
-        .accounts
-        .iter()
-        .zip(second_ix.accounts.iter())
-        .enumerate()
-    {
-        let account_curr_pk = &account_curr.pubkey;
-        let account_other_pk = &account_other.pubkey;
-        if account_curr_pk != account_other_pk {
-            msg!("Some accounts in flash tx couple differs. index: {idx}, first:{account_curr_pk}, second:{account_other_pk}",);
-            return err!(LimoError::FlashIxsAccountMismatch);
-        }
-    }
+    check_same_accounts(&current_ix, &second_ix)?;
 
     Ok(T::try_from_slice(&second_ix.data[8..])?)
 }
@@ -98,8 +82,9 @@ fn search_second_ix(
         ix_utils::IxIterator::new_at(current_idx.checked_add(1).unwrap(), instruction_loader);
 
     for ix in ix_iterator.by_ref() {
-        if ix.is_err() {
+        if let Err(error) = ix {
             msg!("Unexpected error encountered while iterating over instructions");
+            return Err(error.into());
         }
         let ix = ix?;
         if ix.program_id == crate::id() {
@@ -111,8 +96,9 @@ fn search_second_ix(
     let extra_ix = found_extra_ix.ok_or_else(|| error!(LimoError::FlashIxsNotEnded))?;
 
     for ix in ix_iterator.by_ref() {
-        if ix.is_err() {
+        if let Err(error) = ix {
             msg!("Unexpected error encountered while iterating over instructions");
+            return Err(error.into());
         }
         let ix = ix?;
         require!(
@@ -169,23 +155,7 @@ where
     }
 
     let current_ix = instruction_loader.load_instruction_at(current_idx)?;
-    if first_ix.accounts.len() != current_ix.accounts.len() {
-        msg!("Number of accounts mismatch between first and second ix of couple");
-        return err!(LimoError::FlashIxsAccountMismatch);
-    }
-    for (idx, (account_curr, account_other)) in current_ix
-        .accounts
-        .iter()
-        .zip(first_ix.accounts.iter())
-        .enumerate()
-    {
-        let account_curr_pk = &account_curr.pubkey;
-        let account_other_pk = &account_other.pubkey;
-        if account_curr_pk != account_other_pk {
-            msg!("Some accounts in flash tx couple differs. index: {idx}, first:{account_curr_pk}, second:{account_other_pk}",);
-            return err!(LimoError::FlashIxsAccountMismatch);
-        }
-    }
+    check_same_accounts(&first_ix, &current_ix)?;
 
     Ok(T::try_from_slice(&first_ix.data[8..])?)
 }
@@ -200,8 +170,9 @@ fn search_first_ix(
         ix_utils::IxIterator::new_at(current_idx.checked_add(1).unwrap(), instruction_loader);
 
     for ix in ix_iterator.by_ref() {
-        if ix.is_err() {
+        if let Err(error) = ix {
             msg!("Unexpected error encountered while iterating over instructions");
+            return Err(error.into());
         }
         let ix = ix?;
         require!(
@@ -303,7 +274,29 @@ fn token_2022_verify_ix_and_mints(
     Ok(())
 }
 
-mod ix_utils {
+pub fn check_same_accounts(start_ix: &Instruction, end_ix: &Instruction) -> Result<()> {
+    if end_ix.accounts.len() != start_ix.accounts.len() {
+        msg!("Number of accounts mismatch between start and end ix");
+        return err!(LimoError::FlashIxsAccountMismatch);
+    }
+
+    for (idx, (account_start, account_end)) in start_ix
+        .accounts
+        .iter()
+        .zip(end_ix.accounts.iter())
+        .enumerate()
+    {
+        let account_start_pk = &account_start.pubkey;
+        let account_end_pk = &account_end.pubkey;
+        if account_start_pk != account_end_pk {
+            msg!("Some accounts in assert_user_swap_balances tx differ. index: {idx}, start:{account_start_pk}, end:{account_end_pk}",);
+            return err!(LimoError::FlashIxsAccountMismatch);
+        }
+    }
+    Ok(())
+}
+
+pub mod ix_utils {
     use super::*;
 
     pub trait InstructionLoader {
