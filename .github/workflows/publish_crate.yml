@@ -1,0 +1,86 @@
+name: Publish Limo to crates.io
+
+env:
+  rustc_version: "1.73.0"
+  version: 0.1.1
+
+# Workflow test purpose only
+on:
+  pull_request:
+    branches:
+      - master
+      - "release/**"
+
+# on:
+#   # Allows you to run this workflow manually from the Actions tab
+#   workflow_dispatch:
+#     inputs:
+#       version:
+#         description: 'Version to publish, by semver keyword.'
+#         required: true
+#         default: patch
+#         type: choice
+#         options:
+#           - patch
+#           - minor
+#           - major
+
+jobs:
+  publish-limo-crate:
+    name: Publish LIMO
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.KAMINOBOT_WRITE_REPO_PAT }} # use bot to avoid branch protection
+
+      # Check if the branch is master
+      # - name: Master branch check
+      #   run: |
+      #     echo "Must be on master branch to publish the package."
+      #     exit 1
+      #   if: github.ref != 'refs/heads/master'
+
+      # Step 2: Setup Rust
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.rustc_version }}
+
+      # Step 3: Install cargo-edit for version bumping
+      - name: Install cargo-edit
+        run: cargo install cargo-edit --locked
+
+      # Step 4: Bump the version in Cargo.toml
+      - name: Bump version in Cargo.toml
+        id: bump_version
+        working-directory: "programs/limo"
+        run: |
+          VERSION=${{ env.version }}
+          cargo set-version $VERSION
+      
+      # Step 5: Publish crate to crates.io
+      - name: Publish crate to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_API_KEY }}
+        working-directory: "programs/limo"
+        run: cargo publish --allow-dirty
+
+      # Step 6: Push to GitHub
+      - name: Configure Git User
+        run: |
+          git config --global user.name "Kamino Bot"
+          git config --global user.username "kamino-bot"
+          git config --global user.email "dev@kamino.finance"
+      
+      - name: Create git commit
+        # force push to avoid branch protection
+        working-directory: "programs/limo"
+        run: |
+          git add Cargo.toml Cargo.lock
+          git commit -m "Bump version and publish crate - ${{ env.version }}"
+          git push --force origin "HEAD:${{ github.event.pull_request.head.ref }}"
