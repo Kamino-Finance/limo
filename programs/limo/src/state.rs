@@ -260,9 +260,7 @@ pub struct GetBalancesCheckedResult {
     pub output_balance: u64,
 }
 
-#[derive(
-    TryFromPrimitive, PartialEq, Eq, Clone, Copy, Debug, AnchorSerialize, AnchorDeserialize,
-)]
+#[derive(TryFromPrimitive, PartialEq, Eq, Clone, Copy, Debug)]
 #[repr(u16)]
 pub enum UpdateOrderMode {
     UpdatePermissionless = 0,

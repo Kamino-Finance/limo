@@ -41,6 +41,7 @@ fn handler_checks(ctx: &Context<FlashTakeOrder>) -> Result<()> {
     validate_token_extensions(
         &ctx.accounts.input_mint.to_account_info(),
         vec![&ctx.accounts.taker_input_ata.to_account_info()],
+        false,
     )?;
     if let Some(maker_output_ata_account) = ctx.accounts.maker_output_ata.as_ref() {
         validate_token_extensions(
@@ -49,11 +50,13 @@ fn handler_checks(ctx: &Context<FlashTakeOrder>) -> Result<()> {
                 &ctx.accounts.taker_output_ata.to_account_info(),
                 &maker_output_ata_account.to_account_info(),
             ],
+            false,
         )?;
     } else {
         validate_token_extensions(
             &ctx.accounts.output_mint.to_account_info(),
             vec![&ctx.accounts.taker_output_ata.to_account_info()],
+            false,
         )?;
     }
 

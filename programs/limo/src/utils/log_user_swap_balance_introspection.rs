@@ -5,28 +5,24 @@ use anchor_lang::{
 use super::flash_ixs::{check_same_accounts, ix_utils};
 use crate::LimoError;
 
-pub fn ensure_end_ix_match<T>(
-    instruction_sysvar_account_info: &AccountInfo,
-    swap_program_id: &Pubkey,
-) -> Result<T>
+pub fn ensure_end_ix_match<T>(instruction_sysvar_account_info: &AccountInfo) -> Result<T>
 where
     T: Discriminator + AnchorDeserialize,
 {
     let instruction_loader = ix_utils::BpfInstructionLoader {
         instruction_sysvar_account_info,
     };
-    ensure_end_ix_match_internal(&instruction_loader, swap_program_id)
+    ensure_end_ix_match_internal(&instruction_loader)
 }
 
 fn ensure_end_ix_match_internal<T>(
     instruction_loader: &impl ix_utils::InstructionLoader,
-    swap_program_id: &Pubkey,
 ) -> Result<T>
 where
     T: Discriminator + AnchorDeserialize,
 {
     let current_idx = instruction_loader.load_current_index()?.into();
-    let end_ix = search_end_ix(current_idx, instruction_loader, swap_program_id)?;
+    let end_ix = search_end_ix(current_idx, instruction_loader)?;
 
     if let Some(discriminator) = end_ix.data.get(..8) {
         if discriminator != T::discriminator() {
@@ -47,9 +43,7 @@ where
 fn search_end_ix(
     current_idx: usize,
     instruction_loader: &impl ix_utils::InstructionLoader,
-    swap_program_id: &Pubkey,
 ) -> Result<Instruction> {
-    let mut found_swap_ix = false;
     let mut found_end_ix = None;
     let mut ix_iterator =
         ix_utils::IxIterator::new_at(current_idx.checked_add(1).unwrap(), instruction_loader);
@@ -64,50 +58,32 @@ fn search_end_ix(
         if ix.program_id == crate::id() {
             found_end_ix = Some(ix);
             break;
-        } else if ix.program_id == *swap_program_id {
-            if found_swap_ix {
-                msg!("More than one swap instruction found between start and end");
-                return err!(LimoError::FlashTxWithUnexpectedIxs);
-            }
-            found_swap_ix = true;
-        } else {
-            msg!("Unexpected instruction found between start and end");
-            return err!(LimoError::FlashTxWithUnexpectedIxs);
         }
     }
 
     let end_ix = found_end_ix.ok_or_else(|| error!(LimoError::FlashIxsNotEnded))?;
 
-    if !found_swap_ix {
-        msg!("No swap instruction found between start and end");
-        return err!(LimoError::FlashTxWithUnexpectedIxs);
-    }
-
     Ok(end_ix)
 }
 
-pub fn ensure_start_ix_match<T>(
-    instruction_sysvar_account_info: &AccountInfo,
-    swap_program_id: &Pubkey,
-) -> Result<T>
+pub fn ensure_start_ix_match<T>(instruction_sysvar_account_info: &AccountInfo) -> Result<T>
 where
     T: Discriminator + AnchorDeserialize,
 {
     let instruction_loader = ix_utils::BpfInstructionLoader {
         instruction_sysvar_account_info,
     };
-    ensure_start_ix_match_internal(&instruction_loader, swap_program_id)
+    ensure_start_ix_match_internal(&instruction_loader)
 }
 
 fn ensure_start_ix_match_internal<T>(
     instruction_loader: &impl ix_utils::InstructionLoader,
-    swap_program_id: &Pubkey,
 ) -> Result<T>
 where
     T: Discriminator + AnchorDeserialize,
 {
     let current_idx = instruction_loader.load_current_index()?.into();
-    let start_ix = search_start_ix(current_idx, instruction_loader, swap_program_id)?;
+    let start_ix = search_start_ix(current_idx, instruction_loader)?;
 
     if let Some(discriminator) = start_ix.data.get(..8) {
         if discriminator != T::discriminator() {
@@ -128,9 +104,7 @@ where
 fn search_start_ix(
     current_idx: usize,
     instruction_loader: &impl ix_utils::InstructionLoader,
-    swap_program_id: &Pubkey,
 ) -> Result<Instruction> {
-    let mut found_swap_ix = false;
     let mut found_start_ix = None;
 
     for idx in (0..current_idx).rev() {
@@ -139,24 +113,10 @@ fn search_start_ix(
         if ix.program_id == crate::id() {
             found_start_ix = Some(ix);
             break;
-        } else if ix.program_id == *swap_program_id {
-            if found_swap_ix || found_start_ix.is_some() {
-                msg!("Multiple swap instructions or swap instruction before start ix");
-                return err!(LimoError::FlashTxWithUnexpectedIxs);
-            }
-            found_swap_ix = true;
-        } else if found_start_ix.is_some() {
-            msg!("Unexpected instruction between start and end");
-            return err!(LimoError::FlashTxWithUnexpectedIxs);
         }
     }
 
     let start_ix = found_start_ix.ok_or_else(|| error!(LimoError::FlashIxsNotStarted))?;
-
-    if !found_swap_ix {
-        msg!("No swap instruction found between start and end");
-        return err!(LimoError::FlashTxWithUnexpectedIxs);
-    }
 
     Ok(start_ix)
 }
