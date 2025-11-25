@@ -117,11 +117,13 @@ pub mod token_2022 {
         ExtensionType::TransferFeeConfig,
         ExtensionType::TokenMetadata,
         ExtensionType::TransferHook,
+        ExtensionType::DefaultAccountState,
     ];
 
     pub fn validate_token_extensions(
         mint_acc_info: &AccountInfo,
         token_acc_infos: Vec<&AccountInfo>,
+        is_close_order_and_claim_tip_ix: bool,
     ) -> anchor_lang::Result<()> {
         if mint_acc_info.owner == &spl_token::id() {
             return Ok(());
@@ -209,6 +211,14 @@ pub mod token_2022 {
                             return err!(LimoError::UnsupportedTokenExtension);
                         }
                     }
+                }
+            } else if mint_ext == ExtensionType::DefaultAccountState
+                && !is_close_order_and_claim_tip_ix
+            {
+                let ext = mint.get_extension::<spl_token_2022::extension::default_account_state::DefaultAccountState>()?;
+                if ext.state != spl_token_2022::state::AccountState::Initialized as u8 {
+                    xmsg!("Default account state extension only supports \"Initialized\" state");
+                    return err!(LimoError::UnsupportedTokenExtension);
                 }
             }
         }

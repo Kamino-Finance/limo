@@ -19,8 +19,9 @@ pub fn handler_create_order(
     validate_token_extensions(
         &ctx.accounts.input_mint.to_account_info(),
         vec![&ctx.accounts.maker_ata.to_account_info()],
+        false,
     )?;
-    validate_token_extensions(&ctx.accounts.output_mint.to_account_info(), vec![])?;
+    validate_token_extensions(&ctx.accounts.output_mint.to_account_info(), vec![], false)?;
 
     require!(input_amount > 0, LimoError::OrderInputAmountInvalid);
     require!(output_amount > 0, LimoError::OrderOutputAmountInvalid);

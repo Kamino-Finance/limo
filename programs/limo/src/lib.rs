@@ -64,11 +64,7 @@ pub mod limo {
     }
 
     #[access_control(emergency_mode_disabled(&ctx.accounts.global_config))]
-    pub fn update_order(
-        ctx: Context<UpdateOrder>,
-        mode: UpdateOrderMode,
-        value: Vec<u8>,
-    ) -> Result<()> {
+    pub fn update_order(ctx: Context<UpdateOrder>, mode: u16, value: Vec<u8>) -> Result<()> {
         handlers::update_order::handler_update_order(ctx, mode, &value)
     }
 

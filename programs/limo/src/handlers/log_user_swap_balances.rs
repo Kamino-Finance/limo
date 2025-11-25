@@ -15,10 +15,8 @@ use crate::{
 pub fn handler_log_user_swap_balances_start(
     ctx: Context<LogUserSwapBalancesStartContext>,
 ) -> Result<()> {
-    let swap_program_id = ctx.accounts.base_accounts.swap_program_id.key();
     log_user_swap_balance_introspection::ensure_end_ix_match::<LogUserSwapBalancesEnd>(
         &ctx.accounts.sysvar_instructions,
-        &swap_program_id,
     )?;
 
     let balances = get_balances_checked(&ctx.accounts.base_accounts)?;
@@ -45,7 +43,6 @@ pub fn handler_log_user_swap_balances_end(
     let swap_program_id = ctx.accounts.base_accounts.swap_program_id.key();
     log_user_swap_balance_introspection::ensure_start_ix_match::<LogUserSwapBalancesStart>(
         &ctx.accounts.sysvar_instructions,
-        &swap_program_id,
     )?;
 
     let balances = get_balances_checked(&ctx.accounts.base_accounts)?;

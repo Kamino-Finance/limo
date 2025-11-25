@@ -16,6 +16,7 @@ pub fn handler_close_order_and_claim_tip(ctx: Context<CloseOrderAndClaimTip>) ->
     validate_token_extensions(
         &ctx.accounts.input_mint.to_account_info(),
         vec![&ctx.accounts.maker_input_ata.to_account_info()],
+        true,
     )?;
     let order = &mut ctx.accounts.order.load_mut()?;
     let global_config = &mut ctx.accounts.global_config.load_mut()?;
